@@ -1496,12 +1496,77 @@ def render_top_header():
 
 def render_sidebar(page):
 
+    st.sidebar.markdown(
+        """
+        <div class="brand-row">
+            <div class="brand-logo-fallback">◆</div>
+            <div>
+                <div class="brand-name">Sakila AI</div>
+                <div class="brand-badge">BI Intelligence</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.sidebar.markdown(
+        '<div class="nav-section-title">Navigation</div>',
+        unsafe_allow_html=True,
+    )
+
+    if st.sidebar.button(
+        "▦  Overview",
+        key="nav_overview",
+        use_container_width=True,
+        type=(
+            "primary"
+            if page == "overview"
+            else "secondary"
+        ),
+    ):
+        st.session_state.page = "overview"
+        st.query_params["page"] = "overview"
+        st.rerun()
+
+    if st.sidebar.button(
+        "↗  Predictions & Policy",
+        key="nav_predictions",
+        use_container_width=True,
+        type=(
+            "primary"
+            if page == "predictions"
+            else "secondary"
+        ),
+    ):
+        st.session_state.page = "predictions"
+        st.query_params["page"] = "predictions"
+        st.rerun()
+
+    st.sidebar.markdown(
+        "<div style='height:4px'></div>",
+        unsafe_allow_html=True,
+    )
+
+    if st.sidebar.button(
+        "✦  AI Analyst",
+        key="nav_analyst",
+        use_container_width=True,
+        type=(
+            "primary"
+            if page == "analyst"
+            else "secondary"
+        ),
+    ):
+        st.session_state.page = "analyst"
+        st.query_params["page"] = "analyst"
+        st.rerun()
+
     activity_placeholder = st.sidebar.empty()
 
     activity_placeholder.markdown(
         """
         <div class="sidebar-bottom">
-            <div class="activity-row">
+            <div class="activity-nav">
                 <div class="activity-left">
                     <span class="material-symbols-outlined"
                           style="font-size:18px;">
@@ -1516,7 +1581,7 @@ def render_sidebar(page):
                 font:500 9px 'JetBrains Mono',monospace;
                 color:#94A3B8;
                 letter-spacing:.06em;
-                ">
+            ">
                 READY
             </div>
         </div>
@@ -1525,7 +1590,6 @@ def render_sidebar(page):
     )
 
     return activity_placeholder
-
 
 def render_page_header(title, subtitle, eyebrow=None, model_note=None):
     if eyebrow:
