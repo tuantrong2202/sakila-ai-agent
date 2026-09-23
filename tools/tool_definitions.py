@@ -12,6 +12,7 @@ from tools.data.get_category_data import get_category_data
 from tools.data.get_customer_data import get_customer_data
 from tools.data.get_film_data import get_film_data
 from tools.data.get_store_data import get_store_data
+from tools.data.get_revenue_by_time import get_revenue_by_time
 
 
 # ============================================================
@@ -135,6 +136,8 @@ TOOL_FUNCTIONS = {
     "find_best_policy": find_best_policy,
     "apply_policy_constraints": apply_policy_constraints,
     "generate_policy_recommendation": generate_policy_recommendation,
+
+    "get_revenue_by_time": get_revenue_by_time,
 }
 
 
@@ -704,7 +707,54 @@ TOOL_DEFINITIONS = [
                 "rental_rate"
             ]
         }
-    }
+    },
+
+    {
+        "name": "get_revenue_by_time",
+        "description": (
+            "Calculate collected revenue from payment.amount over a selected "
+            "date range. Use payment.payment_date as the time dimension. "
+            "Can group revenue by day, month, quarter, year, or category."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "start_date": {
+                    "type": "string",
+                    "description": (
+                        "Start date in YYYY-MM-DD format, inclusive."
+                    )
+                },
+                "end_date": {
+                    "type": "string",
+                    "description": (
+                        "End date in YYYY-MM-DD format, inclusive."
+                    )
+                },
+                "group_by": {
+                    "type": "string",
+                    "enum": [
+                        "day",
+                        "month",
+                        "quarter",
+                        "year",
+                        "category"
+                    ],
+                    "default": "month",
+                    "description": (
+                        "How revenue should be grouped."
+                    )
+                },
+                "category": {
+                    "type": "string",
+                    "description": (
+                        "Optional exact category filter."
+                    )
+                }
+            },
+            "required": []
+        }
+    },
 ]
 
 

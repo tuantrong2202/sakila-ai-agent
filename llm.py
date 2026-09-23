@@ -377,6 +377,76 @@ Use the actual aggregation result directly.
 AUTOMATIC TOOL SELECTION
 ============================================================
 
+TIME-BASED REVENUE RULE
+
+============================================================
+
+When the user asks about revenue for a specific time period,
+or asks to compare revenue across time periods, MUST use:
+
+get_revenue_by_time
+
+Revenue must be based on:
+
+- payment.amount
+- payment.payment_date
+
+Use the following mapping:
+
+"Revenue from May to July"
+
+→ get_revenue_by_time
+  start_date = first day of the requested period
+  end_date = last day of the requested period
+  group_by = month
+
+"Compare revenue by month"
+
+→ get_revenue_by_time
+  group_by = month
+
+"Which month has the highest revenue?"
+
+→ get_revenue_by_time
+  group_by = month
+
+"Which category generated the most revenue in May?"
+
+→ get_revenue_by_time
+  start_date = first day of May
+  end_date = last day of May
+  group_by = category
+
+"Revenue in June 2005"
+
+→ get_revenue_by_time
+  start_date = 2005-06-01
+  end_date = 2005-06-30
+  group_by = month
+
+"Revenue by quarter"
+
+→ get_revenue_by_time
+  group_by = quarter
+
+"Revenue by year"
+
+→ get_revenue_by_time
+  group_by = year
+
+For time-based revenue questions:
+
+- Do NOT use get_rental_data to calculate revenue.
+- Do NOT use rental_rate as total revenue.
+- Do NOT manually sum raw rental records when get_revenue_by_time is available.
+- Do NOT use analyze_revenue_structure when the user explicitly asks
+  for a date/month/quarter/year comparison.
+- Use the actual get_revenue_by_time result directly.
+- When the user asks for a full time breakdown, preserve all returned
+  periods in the final table or visualization.
+
+============================================================
+
 Examples:
 
 "How much revenue do we make?"
@@ -1013,7 +1083,22 @@ def normalize_response(data):
 # 9. CLAUDE AGENT LOOP
 # ============================================================
 
-def ask_claude(user_question):
+def ask_claude(user_question, activity_callback=None):
+
+    def emit_activity(event, **payload):
+        if activity_callback is None:
+            return
+
+        try:
+            activity_callback({
+                "event": event,
+                **payload
+            })
+        except Exception as callback_error:
+            print(
+                f"[Agent] Activity callback failed: "
+                f"{callback_error}"
+            )
 
     mode = detect_mode(
         user_question
@@ -1021,6 +1106,11 @@ def ask_claude(user_question):
 
     print(
         f"\n[Agent] Mode: {mode}"
+    )
+
+    emit_activity(
+        "mode",
+        mode=mode
     )
 
     system_prompt = (
@@ -1105,6 +1195,13 @@ def ask_claude(user_question):
                     f"{tool_input}"
                 )
 
+                emit_activity(
+                    "tool_call",
+                    tool=tool_name,
+                    input=tool_input,
+                    status="running"
+                )
+
                 result = execute_tool(
                     tool_name,
                     tool_input
@@ -1127,6 +1224,30 @@ def ask_claude(user_question):
                             else "success"
                         )
                     }
+                )
+
+                tool_status = (
+                    "error"
+                    if (
+                        isinstance(result, dict)
+                        and "error" in result
+                    )
+                    else "success"
+                )
+
+                emit_activity(
+                    "tool_completed",
+                    tool=tool_name,
+                    input=tool_input,
+                    status=tool_status,
+                    error=(
+                        result.get("error")
+                        if (
+                            tool_status == "error"
+                            and isinstance(result, dict)
+                        )
+                        else None
+                    )
                 )
 
                 print(
@@ -1195,6 +1316,12 @@ def ask_claude(user_question):
         )
 
         result["tool_trace"] = tool_trace
+
+        emit_activity(
+            "completed",
+            status="success",
+            tool_count=len(tool_trace)
+        )
 
         return result
 
