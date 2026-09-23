@@ -1556,26 +1556,18 @@ def render_sidebar(page):
 
     activity_placeholder.markdown(
         """
-        <div class="sidebar-bottom">
-            <div class="activity-nav">
-                <div class="activity-left">
-                    <span class="material-symbols-outlined"
-                          style="font-size:18px;">
-                        tune
-                    </span>
-                    <span>Agent Activity</span>
-                </div>
-                <span class="activity-dot"></span>
-            </div>
-            <div style="
-                padding:8px 12px 2px 12px;
-                font:500 9px 'JetBrains Mono',monospace;
-                color:#94A3B8;
-                letter-spacing:.06em;
-            ">
-                READY
-            </div>
-        </div>
+<div class="sidebar-bottom">
+  <div class="activity-row">
+    <div class="activity-left">
+      <span class="material-symbols-outlined" style="font-size:18px;">tune</span>
+      <span>Agent Activity</span>
+    </div>
+    <span style="font:600 8px 'JetBrains Mono',monospace; color:#64748B;">READY</span>
+  </div>
+  <div style="padding:6px 12px 0 12px; font:500 9px 'JetBrains Mono',monospace; color:#64748B;">
+    ● Processing user request
+  </div>
+</div>
         """,
         unsafe_allow_html=True,
     )
