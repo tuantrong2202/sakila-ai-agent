@@ -1809,7 +1809,16 @@ def render_agent_visualization(viz):
             alt.Chart(df)
             .mark_bar(color="#312E81")
             .encode(
-                x=alt.X(f"{x_key}:N", sort="-y", title=None),
+                x=alt.X(
+                    f"{x_key}:N",
+                    sort="-y",
+                    title=None,
+                    axis=alt.Axis(
+                        labelAngle=0,
+                        labelOverlap=False,
+                        labelLimit=140,
+                    ),
+                ),
                 y=alt.Y(f"{y_key}:Q", title=None),
                 tooltip=[x_key, y_key],
             )
@@ -1822,7 +1831,15 @@ def render_agent_visualization(viz):
             alt.Chart(df)
             .mark_line(color="#312E81", strokeWidth=2)
             .encode(
-                x=alt.X(f"{x_key}:N", title=None),
+                x=alt.X(
+                    f"{x_key}:N",
+                    title=None,
+                    axis=alt.Axis(
+                        labelAngle=0,
+                        labelOverlap=False,
+                        labelLimit=140,
+                    ),
+                ),
                 y=alt.Y(f"{y_key}:Q", title=None),
                 tooltip=[x_key, y_key],
             )
