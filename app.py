@@ -19,6 +19,7 @@ from tools.analysis.analyze_late_fee_dependency import (
 from tools.analysis.analyze_revenue_structure import analyze_revenue_structure
 from tools.data.get_store_data import get_store_data
 from tools.data.get_rental_data import get_rental_data
+from tools.data.get_revenue_by_time import get_revenue_by_time
 
 from tools.data.get_category_data import get_category_data
 from tools.optimization.derive_fee_constraint import derive_fee_constraint
@@ -29,6 +30,7 @@ from tools.optimization.generate_policy_recommendation import (
 )
 from tools.simulation.compare_scenarios import compare_scenarios
 from tools.simulation.simulate_fee_policy import simulate_fee_policy
+from textwrap import dedent
 
 
 # ============================================================
@@ -1230,86 +1232,75 @@ if "overview_store" not in st.session_state:
 @st.cache_data(ttl=300, show_spinner=False)
 def load_monthly_rental_trend():
 
-    rows = safe_call(
-        get_rental_data,
+    result = safe_call(
+        get_revenue_by_time,
+        {},
+        start_date="2005-05-01",
+        end_date="2006-02-28",
+        group_by="month",
+    )
+
+    if not isinstance(result, dict):
+        return pd.DataFrame(
+            columns=[
+                "month",
+                "revenue",
+                "transaction_count",
+            ]
+        )
+
+    rows = result.get(
+        "grouped_revenue",
         [],
+    ) or []
+
+    if not rows:
+        return pd.DataFrame(
+            columns=[
+                "month",
+                "revenue",
+                "transaction_count",
+            ]
+        )
+
+    trend = pd.DataFrame(rows)
+
+    if "group" not in trend.columns:
+        return pd.DataFrame(
+            columns=[
+                "month",
+                "revenue",
+                "transaction_count",
+            ]
+        )
+
+    trend = trend.rename(
+        columns={
+            "group": "month",
+            "revenue": "revenue",
+        }
     )
 
-    if not isinstance(rows, list) or not rows:
-        return pd.DataFrame(
-            columns=[
-                "month",
-                "rental_revenue",
-            ]
-        )
+    if "transaction_count" not in trend.columns:
+        trend["transaction_count"] = 0
 
-    df = pd.DataFrame(rows)
-
-    if df.empty:
-        return pd.DataFrame(
-            columns=[
-                "month",
-                "rental_revenue",
-            ]
-        )
-
-    if "rental_date" not in df.columns:
-        return pd.DataFrame(
-            columns=[
-                "month",
-                "rental_revenue",
-            ]
-        )
-
-    if "rental_rate" not in df.columns:
-        return pd.DataFrame(
-            columns=[
-                "month",
-                "rental_revenue",
-            ]
-        )
-
-    df["rental_date"] = pd.to_datetime(
-        df["rental_date"],
-        errors="coerce",
-    )
-
-    df["rental_rate"] = pd.to_numeric(
-        df["rental_rate"],
+    trend["revenue"] = pd.to_numeric(
+        trend["revenue"],
         errors="coerce",
     ).fillna(0)
 
-    df = df.dropna(
-        subset=["rental_date"]
-    )
+    trend["transaction_count"] = pd.to_numeric(
+        trend["transaction_count"],
+        errors="coerce",
+    ).fillna(0).astype(int)
 
-    if df.empty:
-        return pd.DataFrame(
-            columns=[
-                "month",
-                "rental_revenue",
-            ]
-        )
-
-    df["month"] = (
-        df["rental_date"]
-        .dt.to_period("M")
-        .astype(str)
-    )
-
-    result = (
-        df.groupby("month", as_index=False)
-        ["rental_rate"]
-        .sum()
-        .rename(
-            columns={
-                "rental_rate": "rental_revenue"
-            }
-        )
-        .sort_values("month")
-    )
-
-    return result
+    return trend[
+        [
+            "month",
+            "revenue",
+            "transaction_count",
+        ]
+    ].sort_values("month")
 
 
 # ============================================================
@@ -1923,16 +1914,8 @@ def render_live_agent_activity(
     placeholder,
     state,
 ):
-
-    status = state.get(
-        "status",
-        "READY",
-    )
-
-    steps = state.get(
-        "steps",
-        [],
-    )
+    status = state.get("status", "READY")
+    steps = state.get("steps", [])
 
     status_upper = str(status).upper()
 
@@ -1953,19 +1936,18 @@ def render_live_agent_activity(
 
     if not steps:
         rows.append(
-            """
+            dedent("""
             <div style="
+                padding:6px 12px;
                 font:500 9px 'JetBrains Mono',monospace;
                 color:#64748B;
-                padding:6px 12px 0 12px;
-                ">
+            ">
                 ● Processing user request
             </div>
-            """
+            """)
         )
 
     for step in steps:
-
         tool = html.escape(
             str(step.get("tool", "unknown"))
         )
@@ -1988,32 +1970,65 @@ def render_live_agent_activity(
             symbol_color = "#64748B"
 
         rows.append(
-            f"""
+            dedent(f"""
             <div style="
                 display:flex;
                 justify-content:space-between;
                 align-items:center;
                 gap:8px;
-                padding:6px 12px 0 12px;
+                padding:6px 12px;
                 font:500 9px 'JetBrains Mono',monospace;
+                border-bottom:1px solid #F8FAFC;
+            ">
+                <span style="
+                    color:#334155;
+                    min-width:0;
+                    overflow:hidden;
+                    text-overflow:ellipsis;
+                    white-space:nowrap;
                 ">
-                <span style="color:#334155;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                    <span style="color:{symbol_color};font-size:12px;">
+                    <span style="
+                        color:{symbol_color};
+                        font-size:12px;
+                        margin-right:4px;
+                    ">
                         {symbol}
                     </span>
                     {tool}
                 </span>
-                <span style="color:#94A3B8;font-size:8px;">
+
+                <span style="
+                    color:#94A3B8;
+                    font-size:8px;
+                    white-space:nowrap;
+                ">
                     {step_status}
                 </span>
             </div>
-            """
+            """)
         )
 
-    html_block = f"""
-    <div class="sidebar-bottom">
-        <div class="activity-row">
-            <div class="activity-left">
+    html_block = dedent(f"""
+    <div style="
+        width:100%;
+        box-sizing:border-box;
+        background:#FFFFFF;
+        margin-top:8px;
+    ">
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            padding:8px 12px;
+            border-bottom:1px solid #E2E8F0;
+        ">
+            <div style="
+                display:flex;
+                align-items:center;
+                gap:7px;
+                color:#0F172A;
+                font:600 10px 'JetBrains Mono',monospace;
+            ">
                 <span class="material-symbols-outlined"
                       style="font-size:18px;">
                     tune
@@ -2024,7 +2039,7 @@ def render_live_agent_activity(
             <span style="
                 font:600 8px 'JetBrains Mono',monospace;
                 color:{badge_color};
-                ">
+            ">
                 {status_badge}
             </span>
         </div>
@@ -2032,22 +2047,21 @@ def render_live_agent_activity(
         {''.join(rows)}
 
         <div style="
-            margin:7px 12px 0 12px;
-            padding-top:6px;
+            margin:2px 12px 0 12px;
+            padding:6px 0 0 0;
             border-top:1px solid #F1F5F9;
             font:500 8px 'JetBrains Mono',monospace;
             color:#94A3B8;
-            ">
+        ">
             {status_upper}
         </div>
     </div>
-    """
+    """)
 
     placeholder.markdown(
         html_block,
         unsafe_allow_html=True,
     )
-
 
 def render_agent_activity(trace):
 
@@ -2620,12 +2634,6 @@ def render_overview():
 
     trend_df = load_monthly_rental_trend()
 
-    if selected_category != "All Film Categories":
-        if "category" in trend_df.columns:
-            trend_df = trend_df[
-                trend_df["category"]
-                == selected_category
-            ]
 
     if (
         selected_category != "All Film Categories"
@@ -2653,8 +2661,8 @@ def render_overview():
                         Revenue Trend
                     </div>
                     <div class="card-subtitle">
-                        Monthly rental revenue derived from
-                        get_rental_data().
+                        Monthly total revenue from payment.amount
+                        grouped by payment.payment_date.
                     </div>
                 </div>
                 <div class="card-body">
@@ -2702,12 +2710,13 @@ def render_overview():
                         title=None,
                     ),
                     y=alt.Y(
-                        "rental_revenue:Q",
-                        title="Rental Revenue",
+                        "revenue:Q",
+                        title="Total Revenue",
                     ),
                     tooltip=[
                         "month",
-                        "rental_revenue",
+                        "revenue",
+                        "transaction_count",
                     ],
                 )
                 .properties(
@@ -2722,10 +2731,8 @@ def render_overview():
 
             st.markdown(
                 '<div class="card-subtitle">'
-                'Note: this is rental revenue, '
-                'not total payment revenue. '
-                'The current revenue tool does not '
-                'expose payment date.'
+                'Revenue is based on payment.amount and '
+                'payment.payment_date from the revenue tool.'
                 '</div>',
                 unsafe_allow_html=True,
             )
