@@ -1822,9 +1822,12 @@ def render_agent_visualization(viz):
                 y=alt.Y(f"{y_key}:Q", title=None),
                 tooltip=[x_key, y_key],
             )
-            .properties(height=240)
+            .properties(
+                width=1100,
+                height=280,
+            )
         )
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(chart, use_container_width=False)
 
     elif chart_type == "line":
         chart = (
