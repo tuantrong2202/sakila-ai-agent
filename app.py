@@ -1496,75 +1496,12 @@ def render_top_header():
 
 def render_sidebar(page):
 
-    st.sidebar.markdown(
-        """
-        <div class="brand-row">
-            <div class="brand-logo-fallback">◆</div>
-            <div>
-                <div class="brand-name">Sakila AI</div>
-                <div class="brand-badge">BI Intelligence</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    activity_placeholder = st.sidebar.empty()
 
-    st.sidebar.markdown(
-        '<div class="nav-section-title">Navigation</div>',
-        unsafe_allow_html=True,
-    )
-
-    if st.sidebar.button(
-        "▦  Overview",
-        key="nav_overview",
-        use_container_width=True,
-        type=(
-            "primary"
-            if page == "overview"
-            else "secondary"
-        ),
-    ):
-        st.session_state.page = "overview"
-        st.query_params["page"] = "overview"
-        st.rerun()
-
-    if st.sidebar.button(
-        "↗  Predictions & Policy",
-        key="nav_predictions",
-        use_container_width=True,
-        type=(
-            "primary"
-            if page == "predictions"
-            else "secondary"
-        ),
-    ):
-        st.session_state.page = "predictions"
-        st.query_params["page"] = "predictions"
-        st.rerun()
-
-    st.sidebar.markdown(
-        "<div style='height:4px'></div>",
-        unsafe_allow_html=True,
-    )
-
-    if st.sidebar.button(
-        "✦  AI Analyst",
-        key="nav_analyst",
-        use_container_width=True,
-        type=(
-            "primary"
-            if page == "analyst"
-            else "secondary"
-        ),
-    ):
-        st.session_state.page = "analyst"
-        st.query_params["page"] = "analyst"
-        st.rerun()
-
-    st.sidebar.markdown(
+    activity_placeholder.markdown(
         """
         <div class="sidebar-bottom">
-            <div class="activity-nav">
+            <div class="activity-row">
                 <div class="activity-left">
                     <span class="material-symbols-outlined"
                           style="font-size:18px;">
@@ -1574,11 +1511,20 @@ def render_sidebar(page):
                 </div>
                 <span class="activity-dot"></span>
             </div>
+            <div style="
+                padding:8px 12px 2px 12px;
+                font:500 9px 'JetBrains Mono',monospace;
+                color:#94A3B8;
+                letter-spacing:.06em;
+                ">
+                READY
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
+    return activity_placeholder
 
 
 def render_page_header(title, subtitle, eyebrow=None, model_note=None):
@@ -1906,6 +1852,137 @@ def render_agent_insights(insights):
             )
 
 
+
+
+
+def render_live_agent_activity(
+    placeholder,
+    state,
+):
+
+    status = state.get(
+        "status",
+        "READY",
+    )
+
+    steps = state.get(
+        "steps",
+        [],
+    )
+
+    status_upper = str(status).upper()
+
+    if status_upper == "RUNNING":
+        status_badge = "RUNNING"
+        badge_color = "#4338CA"
+    elif status_upper == "ERROR":
+        status_badge = "ERROR"
+        badge_color = "#B91C1C"
+    elif status_upper == "COMPLETED":
+        status_badge = "COMPLETED"
+        badge_color = "#334155"
+    else:
+        status_badge = "READY"
+        badge_color = "#64748B"
+
+    rows = []
+
+    if not steps:
+        rows.append(
+            """
+            <div style="
+                font:500 9px 'JetBrains Mono',monospace;
+                color:#64748B;
+                padding:6px 12px 0 12px;
+                ">
+                ● Processing user request
+            </div>
+            """
+        )
+
+    for step in steps:
+
+        tool = html.escape(
+            str(step.get("tool", "unknown"))
+        )
+
+        step_status = str(
+            step.get("status", "RUNNING")
+        ).upper()
+
+        if step_status == "RUNNING":
+            symbol = "◌"
+            symbol_color = "#4F46E5"
+        elif step_status == "SUCCESS":
+            symbol = "✓"
+            symbol_color = "#334155"
+        elif step_status == "ERROR":
+            symbol = "!"
+            symbol_color = "#B91C1C"
+        else:
+            symbol = "•"
+            symbol_color = "#64748B"
+
+        rows.append(
+            f"""
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                gap:8px;
+                padding:6px 12px 0 12px;
+                font:500 9px 'JetBrains Mono',monospace;
+                ">
+                <span style="color:#334155;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    <span style="color:{symbol_color};font-size:12px;">
+                        {symbol}
+                    </span>
+                    {tool}
+                </span>
+                <span style="color:#94A3B8;font-size:8px;">
+                    {step_status}
+                </span>
+            </div>
+            """
+        )
+
+    html_block = f"""
+    <div class="sidebar-bottom">
+        <div class="activity-row">
+            <div class="activity-left">
+                <span class="material-symbols-outlined"
+                      style="font-size:18px;">
+                    tune
+                </span>
+                <span>Agent Activity</span>
+            </div>
+
+            <span style="
+                font:600 8px 'JetBrains Mono',monospace;
+                color:{badge_color};
+                ">
+                {status_badge}
+            </span>
+        </div>
+
+        {''.join(rows)}
+
+        <div style="
+            margin:7px 12px 0 12px;
+            padding-top:6px;
+            border-top:1px solid #F1F5F9;
+            font:500 8px 'JetBrains Mono',monospace;
+            color:#94A3B8;
+            ">
+            {status_upper}
+        </div>
+    </div>
+    """
+
+    placeholder.markdown(
+        html_block,
+        unsafe_allow_html=True,
+    )
 
 
 def render_agent_activity(trace):
@@ -3685,7 +3762,95 @@ def render_assistant_message(
 
 
 
-def render_ai_analyst():
+def render_ai_analyst(activity_placeholder=None):
+
+
+    activity_state = {
+        "status": "READY",
+        "steps": [],
+        "mode": None,
+    }
+
+    def activity_callback(event):
+
+        if not isinstance(event, dict):
+            return
+
+        event_name = event.get(
+            "event",
+            "",
+        )
+
+        if event_name == "mode":
+
+            activity_state["mode"] = event.get(
+                "mode",
+                "",
+            )
+
+            render_live_agent_activity(
+                activity_placeholder,
+                activity_state,
+            )
+
+            return
+
+        if event_name == "tool_call":
+
+            activity_state["status"] = "RUNNING"
+
+            activity_state["steps"].append(
+                {
+                    "tool": event.get(
+                        "tool",
+                        "unknown",
+                    ),
+                    "status": "RUNNING",
+                }
+            )
+
+            render_live_agent_activity(
+                activity_placeholder,
+                activity_state,
+            )
+
+            return
+
+        if event_name == "tool_completed":
+
+            tool_name = event.get(
+                "tool",
+                "unknown",
+            )
+
+            tool_status = (
+                "ERROR"
+                if str(
+                    event.get(
+                        "status",
+                        "",
+                    )
+                ).lower() == "error"
+                else "SUCCESS"
+            )
+
+            for step in reversed(
+                activity_state["steps"]
+            ):
+                if (
+                    step.get("tool")
+                    == tool_name
+                    and step.get("status")
+                    == "RUNNING"
+                ):
+                    step["status"] = tool_status
+                    break
+
+            render_live_agent_activity(
+                activity_placeholder,
+                activity_state,
+            )
+
 
     # ========================================================
     # PROCESS NEW QUESTION FIRST
@@ -3727,8 +3892,23 @@ def render_ai_analyst():
                 "Claude is analyzing Sakila data..."
             ):
 
+                activity_state["status"] = "RUNNING"
+
+                render_live_agent_activity(
+                    activity_placeholder,
+                    activity_state,
+                )
+
                 result = ask_claude(
-                    question
+                    question,
+                    activity_callback=activity_callback,
+                )
+
+                activity_state["status"] = "COMPLETED"
+
+                render_live_agent_activity(
+                    activity_placeholder,
+                    activity_state,
                 )
 
             if not isinstance(
@@ -3745,6 +3925,13 @@ def render_ai_analyst():
                 }
 
         except Exception as exc:
+
+            activity_state["status"] = "ERROR"
+
+            render_live_agent_activity(
+                activity_placeholder,
+                activity_state,
+            )
 
             result = {
                 "answer": (
@@ -4046,7 +4233,7 @@ page = st.query_params.get("page", "overview")
 if page not in {"overview", "predictions", "analyst"}:
     page = "overview"
 
-render_sidebar(page)
+activity_placeholder = render_sidebar(page)
 render_top_header()
 
 if page == "overview":
@@ -4056,4 +4243,4 @@ elif page == "predictions":
     render_predictions()
 
 else:
-    render_ai_analyst()
+    render_ai_analyst(activity_placeholder)

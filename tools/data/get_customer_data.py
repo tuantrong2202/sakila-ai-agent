@@ -15,10 +15,9 @@ def get_customer_data():
             COUNT(*) AS total_rentals,
             SUM(
                 CASE
-                    WHEN TIMESTAMPDIFF(
-                        DAY,
-                        r.rental_date,
-                        r.return_date
+                    WHEN DATEDIFF(
+                        r.return_date,
+                        r.rental_date
                     ) > f.rental_duration
                     THEN 1
                     ELSE 0
