@@ -2050,6 +2050,13 @@ def render_live_agent_activity(
     </div>
     """)
 
+    # Streamlit Markdown treats indented HTML lines as code blocks.
+    # Remove ALL leading whitespace from every HTML line before rendering.
+    html_block = "\n".join(
+        line.lstrip()
+        for line in html_block.splitlines()
+    )
+
     placeholder.markdown(
         html_block,
         unsafe_allow_html=True,
