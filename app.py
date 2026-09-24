@@ -2089,81 +2089,259 @@ def _activity_event_view(event):
     )
 
 
+def _activity_text(
+    value,
+    limit=420,
+):
+    text = str(value or "")
+    text = text.replace("\n", " ").strip()
+
+    if len(text) > limit:
+        return text[:limit] + "..."
+
+    return text
+
+
+def _activity_symbol(status):
+    status = str(
+        status or "READY"
+    ).upper()
+
+    if status == "RUNNING":
+        return "◌", "#4F46E5"
+
+    if status == "SUCCESS":
+        return "✓", "#334155"
+
+    if status == "ERROR":
+        return "!", "#B91C1C"
+
+    return "•", "#64748B"
+
+
 def render_live_agent_activity(
     placeholder,
     state,
 ):
     status = str(
-        state.get("status", "READY")
+        state.get(
+            "status",
+            "READY",
+        )
     ).upper()
 
-    events = state.get(
-        "events",
+    steps = state.get(
+        "steps",
         [],
     ) or []
 
-    with placeholder.container():
+    if status == "RUNNING":
+        status_badge = "RUNNING"
+        badge_color = "#4338CA"
 
-        st.markdown("### Agent Activity")
-        st.caption(status)
-        st.caption("FULL AGENT PROCESS")
+    elif status == "ERROR":
+        status_badge = "ERROR"
+        badge_color = "#B91C1C"
 
-        if not events:
-            st.info(
-                "Waiting for Agent activity."
+    elif status == "COMPLETED":
+        status_badge = "COMPLETED"
+        badge_color = "#334155"
+
+    else:
+        status_badge = "READY"
+        badge_color = "#64748B"
+
+    rows = []
+
+    if not steps:
+        rows.append(
+            dedent(
+                """
+                <div style="
+                    padding:6px 12px;
+                    font:500 9px 'JetBrains Mono',monospace;
+                    color:#64748B;
+                ">
+                    ● Processing user request
+                </div>
+                """
             )
-
-        for event in events[-30:]:
-            label, detail = _activity_event_view(
-                event
-            )
-
-            st.markdown(
-                f"**{label}**"
-            )
-
-            if detail:
-                if label == "BI OUTPUT RECEIVED":
-                    st.code(
-                        detail,
-                        language="text",
-                    )
-                else:
-                    st.caption(
-                        detail
-                    )
-
-        tool_count = sum(
-            1
-            for event in events
-            if isinstance(event, dict)
-            and event.get("event")
-            == "tool_selected"
         )
 
-        st.caption(
-            "Agent telemetry"
+    for step in steps[-30:]:
+        label = html.escape(
+            str(
+                step.get(
+                    "label",
+                    step.get(
+                        "tool",
+                        "unknown",
+                    ),
+                )
+            )
         )
 
-        c1, c2, c3 = st.columns(3)
+        step_status = str(
+            step.get(
+                "status",
+                "READY",
+            )
+        ).upper()
 
-        with c1:
-            st.metric(
-                "Model",
-                "Claude Sonnet 4.5",
+        symbol, symbol_color = _activity_symbol(
+            step_status
+        )
+
+        detail = _activity_text(
+            step.get(
+                "detail",
+                "",
+            ),
+            420,
+        )
+
+        detail_html = ""
+
+        if detail:
+            detail_html = (
+                f"""
+                <div style="
+                    margin-top:3px;
+                    padding-left:20px;
+                    color:#94A3B8;
+                    font-size:8px;
+                    line-height:1.35;
+                    overflow:hidden;
+                    text-overflow:ellipsis;
+                    white-space:nowrap;
+                ">
+                    {html.escape(detail)}
+                </div>
+                """
             )
 
-        with c2:
-            st.metric(
-                "Tool Calls",
-                tool_count,
-            )
+        rows.append(
+            dedent(
+                f"""
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:flex-start;
+                    gap:8px;
+                    padding:7px 12px;
+                    border-bottom:1px solid #F8FAFC;
+                    font:500 9px 'JetBrains Mono',monospace;
+                ">
+                    <div style="
+                        min-width:0;
+                        flex:1;
+                    ">
+                        <div style="
+                            color:#334155;
+                            display:flex;
+                            align-items:center;
+                            min-width:0;
+                        ">
+                            <span style="
+                                color:{symbol_color};
+                                font-size:12px;
+                                margin-right:5px;
+                                flex-shrink:0;
+                            ">
+                                {symbol}
+                            </span>
+                            <span style="
+                                overflow:hidden;
+                                text-overflow:ellipsis;
+                                white-space:nowrap;
+                            ">
+                                {label}
+                            </span>
+                        </div>
+                        {detail_html}
+                    </div>
 
-        with c3:
-            st.metric(
-                "Status",
-                status,
+                    <span style="
+                        color:{symbol_color};
+                        font-size:8px;
+                        white-space:nowrap;
+                        flex-shrink:0;
+                    ">
+                        {step_status}
+                    </span>
+                </div>
+                """
             )
+        )
+
+    html_block = dedent(
+        f"""
+        <div style="
+            width:100%;
+            box-sizing:border-box;
+            background:#FFFFFF;
+            margin-top:8px;
+        ">
+
+            <div style="
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:8px 12px;
+                border-bottom:1px solid #E2E8F0;
+            ">
+
+                <div style="
+                    display:flex;
+                    align-items:center;
+                    gap:7px;
+                    color:#0F172A;
+                    font:600 10px 'JetBrains Mono',monospace;
+                ">
+
+                    <span class="material-symbols-outlined"
+                          style="font-size:18px;">
+                        tune
+                    </span>
+
+                    <span>Agent Activity</span>
+
+                </div>
+
+                <span style="
+                    font:600 8px 'JetBrains Mono',monospace;
+                    color:{badge_color};
+                ">
+                    {status_badge}
+                </span>
+
+            </div>
+
+            {''.join(rows)}
+
+            <div style="
+                margin:2px 12px 0 12px;
+                padding:6px 0 0 0;
+                border-top:1px solid #F1F5F9;
+                font:500 8px 'JetBrains Mono',monospace;
+                color:#94A3B8;
+            ">
+                {status_badge}
+            </div>
+
+        </div>
+        """
+    )
+
+    html_block = "\n".join(
+        line.lstrip()
+        for line in html_block.splitlines()
+    )
+
+    placeholder.markdown(
+        html_block,
+        unsafe_allow_html=True,
+    )
 
 
 
@@ -3986,70 +4164,360 @@ def render_ai_analyst(activity_placeholder=None):
         ) or []
     )
 
-    activity_state = {
-        "status": (
-            "COMPLETED"
-            if persisted_events
-            else "READY"
-        ),
-        "steps": [],
-        "mode": None,
-        "events": persisted_events,
-    }
+    saved_state = st.session_state.get(
+        "agent_activity_state",
+        None,
+    )
 
-    def record_activity_event(event):
+    if isinstance(
+        saved_state,
+        dict,
+    ):
+        activity_state = {
+            "status": saved_state.get(
+                "status",
+                "READY",
+            ),
+            "steps": list(
+                saved_state.get(
+                    "steps",
+                    [],
+                ) or []
+            ),
+            "mode": saved_state.get(
+                "mode",
+                None,
+            ),
+        }
+    else:
+        activity_state = {
+            "status": "READY",
+            "steps": [],
+            "mode": None,
+        }
+
+    def save_activity_state():
+        st.session_state[
+            "agent_activity_state"
+        ] = {
+            "status": activity_state.get(
+                "status",
+                "READY",
+            ),
+            "steps": list(
+                activity_state.get(
+                    "steps",
+                    [],
+                ) or []
+            ),
+            "mode": activity_state.get(
+                "mode",
+                None,
+            ),
+        }
+
+    def find_running_tool(tool_name):
+        for step in reversed(
+            activity_state["steps"]
+        ):
+            if (
+                step.get("kind") == "tool"
+                and step.get("tool") == tool_name
+                and str(
+                    step.get("status")
+                ).upper() == "RUNNING"
+            ):
+                return step
+
+        return None
+
+    def find_step(kind):
+        for step in reversed(
+            activity_state["steps"]
+        ):
+            if step.get("kind") == kind:
+                return step
+
+        return None
+
+    def add_step(
+        label,
+        status="SUCCESS",
+        detail="",
+        kind="process",
+        tool=None,
+    ):
+        activity_state["steps"].append(
+            {
+                "label": label,
+                "status": status,
+                "detail": detail,
+                "kind": kind,
+                "tool": tool,
+            }
+        )
+
+    def handle_activity_event(event):
         if not isinstance(
             event,
             dict,
         ):
             return
 
-        event_copy = dict(event)
-
-        activity_state["events"].append(
-            event_copy
-        )
-
-        activity_state["events"] = (
-            activity_state["events"][-40:]
-        )
-
-        st.session_state[
-            "agent_activity_events"
-        ] = list(
-            activity_state["events"]
-        )
-
         event_name = str(
-            event_copy.get(
+            event.get(
                 "event",
                 "",
             )
-        )
+        ).lower()
 
-        if event_name in {
-            "question_received",
-            "agent_decision",
-            "tool_selected",
-            "tool_call",
-            "tool_output",
-            "tool_completed",
-            "next_step",
-            "synthesis_started",
-        }:
-            activity_state[
-                "status"
-            ] = "RUNNING"
+        if event_name == "question_received":
+            add_step(
+                "Understanding question",
+                "SUCCESS",
+                _activity_text(
+                    event.get(
+                        "question",
+                        "",
+                    )
+                ),
+                "question",
+            )
+
+        elif event_name == "mode":
+            activity_state["mode"] = event.get(
+                "mode",
+                "",
+            )
+
+            add_step(
+                "Detecting analysis mode",
+                "SUCCESS",
+                f"Mode: {event.get('mode', '')}",
+                "mode",
+            )
+
+        elif event_name == "agent_decision":
+            tools = event.get(
+                "tools",
+                [],
+            ) or []
+
+            add_step(
+                "Selecting BI tool",
+                "SUCCESS",
+                "Selected: "
+                + (
+                    ", ".join(
+                        str(x)
+                        for x in tools
+                    )
+                    or "No tool"
+                ),
+                "decision",
+            )
+
+        elif event_name == "tool_selected":
+            tool_name = str(
+                event.get(
+                    "tool",
+                    "unknown",
+                )
+            )
+
+            input_text = _activity_text(
+                event.get(
+                    "input",
+                    {},
+                ),
+                360,
+            )
+
+            add_step(
+                tool_name,
+                "RUNNING",
+                "Input: " + input_text,
+                "tool",
+                tool_name,
+            )
+
+        elif event_name == "tool_call":
+            tool_name = str(
+                event.get(
+                    "tool",
+                    "unknown",
+                )
+            )
+
+            step = find_running_tool(
+                tool_name
+            )
+
+            if step is None:
+                add_step(
+                    tool_name,
+                    "RUNNING",
+                    "",
+                    "tool",
+                    tool_name,
+                )
+            else:
+                step["status"] = "RUNNING"
+
+        elif event_name == "tool_completed":
+            tool_name = str(
+                event.get(
+                    "tool",
+                    "unknown",
+                )
+            )
+
+            status = str(
+                event.get(
+                    "status",
+                    "success",
+                )
+            ).upper()
+
+            step = find_running_tool(
+                tool_name
+            )
+
+            if step is None:
+                add_step(
+                    tool_name,
+                    status.upper(),
+                    "",
+                    "tool",
+                    tool_name,
+                )
+            else:
+                step["status"] = status
+
+                if event.get("error"):
+                    step["detail"] = _activity_text(
+                        event.get(
+                            "error",
+                            "",
+                        ),
+                        360,
+                    )
+
+        elif event_name == "tool_output":
+            tool_name = str(
+                event.get(
+                    "tool",
+                    "unknown",
+                )
+            )
+
+            output = _activity_text(
+                event.get(
+                    "output",
+                    "",
+                ),
+                700,
+            )
+
+            add_step(
+                "BI output received",
+                "SUCCESS",
+                f"{tool_name}: {output}",
+                "output",
+                tool_name,
+            )
+
+        elif event_name == "next_step":
+            add_step(
+                "Selecting next step",
+                "SUCCESS",
+                (
+                    f"Round {event.get('round', '?')} · "
+                    f"{event.get('tool_count', 0)} "
+                    f"tool result(s)"
+                ),
+                "next_step",
+            )
+
+        elif event_name == "synthesis_started":
+            add_step(
+                "Synthesizing answer",
+                "RUNNING",
+                (
+                    f"{event.get('tool_count', 0)} "
+                    f"tool call(s) · "
+                    f"{event.get('rounds', 0)} round(s)"
+                ),
+                "synthesis",
+            )
+
+        elif event_name == "answer_ready":
+            synthesis = find_step(
+                "synthesis"
+            )
+
+            if synthesis is not None:
+                synthesis["status"] = "SUCCESS"
+
+            sections = []
+
+            if event.get("has_kpis"):
+                sections.append("KPI")
+
+            if event.get("has_visualizations"):
+                sections.append("Visualization")
+
+            if event.get("has_tables"):
+                sections.append("Table")
+
+            if event.get("has_insights"):
+                sections.append("Insights")
+
+            add_step(
+                "Answer ready",
+                "SUCCESS",
+                (
+                    "Prepared: "
+                    + ", ".join(sections)
+                    if sections
+                    else "Answer prepared"
+                ),
+                "answer",
+            )
 
         elif event_name == "completed":
-            activity_state[
-                "status"
-            ] = "COMPLETED"
+            add_step(
+                "Completed",
+                "SUCCESS",
+                f"{event.get('tool_count', 0)} tool call(s)",
+                "completed",
+            )
+
+            activity_state["status"] = "COMPLETED"
 
         elif event_name == "error":
-            activity_state[
-                "status"
-            ] = "ERROR"
+            add_step(
+                "Agent error",
+                "ERROR",
+                _activity_text(
+                    event.get(
+                        "error",
+                        "",
+                    ),
+                    360,
+                ),
+                "error",
+            )
+
+            activity_state["status"] = "ERROR"
+
+        if event_name not in {
+            "completed",
+            "error",
+        }:
+            activity_state["status"] = "RUNNING"
+
+        save_activity_state()
 
         if activity_placeholder is not None:
             render_live_agent_activity(
@@ -4058,14 +4526,11 @@ def render_ai_analyst(activity_placeholder=None):
             )
 
     def activity_callback(event):
-        record_activity_event(
+        handle_activity_event(
             event
         )
 
-    if (
-        activity_placeholder is not None
-        and persisted_events
-    ):
+    if activity_placeholder is not None:
         render_live_agent_activity(
             activity_placeholder,
             activity_state,
@@ -4090,6 +4555,22 @@ def render_ai_analyst(activity_placeholder=None):
         question = pending
 
     if question:
+        activity_state = {
+            "status": "RUNNING",
+            "steps": [],
+            "mode": None,
+        }
+
+        st.session_state[
+            "agent_activity_state"
+        ] = activity_state
+
+        if activity_placeholder is not None:
+            render_live_agent_activity(
+                activity_placeholder,
+                activity_state,
+            )
+
         activity_state["status"] = "RUNNING"
         activity_state["steps"] = []
         activity_state["mode"] = None
@@ -4161,6 +4642,13 @@ def render_ai_analyst(activity_placeholder=None):
         except Exception as exc:
 
             activity_state["status"] = "ERROR"
+            handle_activity_event(
+                {
+                    "event": "error",
+                    "error": str(exc),
+                }
+            )
+
             record_activity_event(
                 {
                     "event": "error",
