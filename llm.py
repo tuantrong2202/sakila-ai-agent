@@ -1100,6 +1100,11 @@ def ask_claude(user_question, activity_callback=None):
                 f"{callback_error}"
             )
 
+    emit_activity(
+        "question_received",
+        question=user_question
+    )
+
     mode = detect_mode(
         user_question
     )
@@ -1168,6 +1173,17 @@ def ask_claude(user_question, activity_callback=None):
 
             tool_round += 1
 
+            emit_activity(
+                "agent_decision",
+                decision="tool_use",
+                round=tool_round,
+                tools=[
+                    block.name
+                    for block in response.content
+                    if block.type == "tool_use"
+                ]
+            )
+
             messages.append(
                 {
                     "role": "assistant",
@@ -1193,6 +1209,13 @@ def ask_claude(user_question, activity_callback=None):
                 print(
                     f"[Agent] Input: "
                     f"{tool_input}"
+                )
+
+                emit_activity(
+                    "tool_selected",
+                    tool=tool_name,
+                    input=tool_input,
+                    round=tool_round
                 )
 
                 emit_activity(
@@ -1258,6 +1281,17 @@ def ask_claude(user_question, activity_callback=None):
                     result
                 )
 
+                output_preview = str(result_json)
+                if len(output_preview) > 900:
+                    output_preview = output_preview[:900] + "..."
+
+                emit_activity(
+                    "tool_output",
+                    tool=tool_name,
+                    status=tool_status,
+                    output=output_preview
+                )
+
                 tool_results.append(
                     {
                         "type": "tool_result",
@@ -1273,11 +1307,23 @@ def ask_claude(user_question, activity_callback=None):
                 }
             )
 
+            emit_activity(
+                "next_step",
+                round=tool_round,
+                tool_count=len(tool_results)
+            )
+
             continue
 
         # ====================================================
         # FINAL RESPONSE
         # ====================================================
+
+        emit_activity(
+            "synthesis_started",
+            tool_count=len(tool_trace),
+            rounds=tool_round
+        )
 
         final_text = []
 
@@ -1316,6 +1362,15 @@ def ask_claude(user_question, activity_callback=None):
         )
 
         result["tool_trace"] = tool_trace
+
+        emit_activity(
+            "answer_ready",
+            tool_count=len(tool_trace),
+            has_kpis=bool(result.get('kpis')),
+            has_visualizations=bool(result.get('visualizations')),
+            has_tables=bool(result.get('tables')),
+            has_insights=bool(result.get('insights'))
+        )
 
         emit_activity(
             "completed",
