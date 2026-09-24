@@ -845,3 +845,17 @@ if __name__ == "__main__":
     print(
         "\nTool definitions loaded successfully."
     )
+
+# === FINAL TIME TOOL DESCRIPTION OVERRIDE ===
+
+_FINAL_TIME_TOOL_DESCRIPTIONS = {
+    "get_rental_metrics_by_time": 'Retrieve rental and late-return metrics aggregated by time period.\n\nUSE THIS TOOL when the user asks about RENTAL ACTIVITY or LATE-RETURN\nMETRICS for a specific time period, or when comparing these metrics\nacross days, months, quarters, or years.\n\nTIME BASIS:\n- rental.rental_date\n\nPOPULATION:\n- completed rentals only\n- return_date IS NOT NULL\n\nThis tool returns:\n- rental_count\n- late_rentals\n- on_time_rentals\n- late_rate_pct\n- avg_rental_duration\n- avg_actual_rental_days\n- avg_late_days\n\nEXAMPLES:\n- "What is the late rate in July 2005?"\n- "How many rentals were made in May 2005?"\n- "How many rentals were late in June?"\n- "Compare late rate by month."\n- "What was the average rental duration by quarter?"\n- "Tỷ lệ trả trễ trong tháng 7 là bao nhiêu?"\n- "Tháng 6 có bao nhiêu rental bị trả trễ?"\n- "So sánh tỷ lệ trả trễ theo tháng."\n\nIMPORTANT TOOL BOUNDARY:\n- Do NOT use get_rental_data for manual time-based aggregation when\n  this dedicated tool can answer the question.\n- Do NOT use get_revenue_by_time unless the user is asking about revenue.\n- Do NOT use analyze_late_fee_dependency when the user only asks for\n  a time-based rental or late-return metric.\n- This tool measures rental behavior, not collected revenue.\n\nThe result is already aggregated by the requested time period.',
+    "get_revenue_by_time": 'Retrieve collected revenue aggregated by time period.\n\nUSE THIS TOOL when the user asks about REVENUE for a specific time\nperiod, or when comparing revenue across days, months, quarters, years,\nor categories.\n\nREVENUE DEFINITION:\n- SUM(payment.amount)\n\nTIME BASIS:\n- payment.payment_date\n\nThis tool returns:\n- revenue\n- transaction_count\n- revenue_share_pct\n- highest_revenue_group\n- lowest_revenue_group\n\nEXAMPLES:\n- "How much revenue did we make in July 2005?"\n- "Compare revenue by month."\n- "Which month has the highest revenue?"\n- "What was revenue in Q3 2005?"\n- "Revenue by year."\n- "Which category generated the most revenue in May?"\n- "Doanh thu tháng 7 là bao nhiêu?"\n- "So sánh doanh thu theo tháng."\n- "Tháng nào có doanh thu cao nhất?"\n- "Doanh thu quý 3 năm 2005 là bao nhiêu?"\n\nIMPORTANT TOOL BOUNDARY:\n- Do NOT use get_rental_metrics_by_time for revenue questions.\n- Do NOT use get_rental_data to calculate revenue manually when\n  this dedicated tool is available.\n- Do NOT use rental_rate as total revenue.\n- Do NOT use analyze_revenue_structure when the user explicitly asks\n  for a time-based revenue comparison that this tool can answer.\n- This tool measures collected payment revenue, not rental behavior\n  or late-return rate.\n\nThe result is already aggregated by the requested grouping.',
+}
+
+for _tool in TOOL_DEFINITIONS:
+    _name = _tool.get("name")
+    if _name in _FINAL_TIME_TOOL_DESCRIPTIONS:
+        _tool["description"] = _FINAL_TIME_TOOL_DESCRIPTIONS[_name]
+
+# === END FINAL TIME TOOL DESCRIPTION OVERRIDE ===

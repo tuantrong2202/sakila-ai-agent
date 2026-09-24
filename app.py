@@ -3020,6 +3020,11 @@ def render_overview():
                     x=alt.X(
                         "month:N",
                         title=None,
+                        axis=alt.Axis(
+                            labelAngle=0,
+                            labelOverlap=False,
+                            labelLimit=140,
+                        ),
                     ),
                     y=alt.Y(
                         "revenue:Q",

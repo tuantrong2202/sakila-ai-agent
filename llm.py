@@ -1175,6 +1175,69 @@ def normalize_response(data):
 # 9. CLAUDE AGENT LOOP
 # ============================================================
 
+
+# === FINAL AUTONOMOUS TIME TOOL DISTINCTION ===
+
+SYSTEM_PROMPT += r"""
+
+============================================================
+FINAL TIME-BASED TOOL DISTINCTION
+============================================================
+
+Claude must choose the tool from the user's meaning.
+Do NOT hard-code application-level routing.
+
+When a question contains both a time period and a business metric:
+
+REVENUE + TIME
+→ get_revenue_by_time
+
+RENTAL / LATE-RETURN + TIME
+→ get_rental_metrics_by_time
+
+Examples:
+
+"Tỷ lệ trả trễ trong tháng 7 là bao nhiêu?"
+→ get_rental_metrics_by_time
+
+"Tháng 7 có bao nhiêu rental?"
+→ get_rental_metrics_by_time
+
+"Tháng 6 có bao nhiêu rental bị trả trễ?"
+→ get_rental_metrics_by_time
+
+"So sánh tỷ lệ trả trễ theo tháng."
+→ get_rental_metrics_by_time
+
+"Doanh thu tháng 7 là bao nhiêu?"
+→ get_revenue_by_time
+
+"So sánh doanh thu theo tháng."
+→ get_revenue_by_time
+
+"Tháng nào có doanh thu cao nhất?"
+→ get_revenue_by_time
+
+"Doanh thu quý 3 năm 2005 là bao nhiêu?"
+→ get_revenue_by_time
+
+TOOL BOUNDARIES:
+
+- Do NOT use get_rental_data for manual time-based aggregation
+  when a dedicated time-based tool can answer the question.
+- Do NOT use get_revenue_by_time for rental count, late rentals,
+  late-return rate, rental duration, actual rental days, or late days.
+- Do NOT use get_rental_metrics_by_time for revenue questions.
+- Do NOT use analyze_late_fee_dependency merely because the question
+  contains "late" when the user is asking only for a time-based
+  late-return metric.
+- Use the dedicated time-based aggregation tool whenever it directly
+  matches the user's requested metric.
+
+Claude remains responsible for selecting the tool.
+The application does not force a tool choice.
+"""
+
 def ask_claude(user_question, activity_callback=None):
 
     def emit_activity(event, **payload):
