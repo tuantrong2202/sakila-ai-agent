@@ -764,17 +764,62 @@ Use exactly this top-level structure:
 
 ============================================================
 KPI FORMAT
+
 ============================================================
 
-Example:
+For every quantitative question that uses Sakila tool results,
+the "kpis" array MUST contain 1 to 4 KPI objects.
+
+Each KPI object MUST contain:
+
+- "label"
+- "value"
+- "description"
+
+KPI values MUST come directly from the current tool results
+or from arithmetic calculations derived from those results.
+
+Do NOT leave "kpis" empty for a quantitative question.
+
+Choose only the most relevant 1 to 4 metrics for the user's question.
+
+Examples:
+
+Revenue question:
+- Total Revenue
+- Rental Revenue
+- Late-fee Revenue
+- Late-fee Contribution
+
+Time-based rental question:
+- Rental Count
+- Late Rentals
+- Late-return Rate
+- Average Rental Duration
+
+Category analysis:
+- Average Rental Rate
+- Rental Count
+- Revenue or Late-fee Revenue when available
+
+Late-return analysis:
+- Total Rentals
+- Late Rentals
+- Late-return Rate
+- Late-fee Contribution when available
+
+Example KPI object:
 
 {
   "label": "Tổng doanh thu",
-  "value": "$67,474.32",
+  "value": "$67,406.56",
   "description": "Tổng doanh thu theo kết quả phân tích."
 }
 
 The KPI "value" may be a string for display.
+
+For non-quantitative questions, "kpis" may be an empty array.
+
 
 ============================================================
 VISUALIZATION FORMAT
