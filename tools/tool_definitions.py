@@ -13,6 +13,7 @@ from tools.data.get_customer_data import get_customer_data
 from tools.data.get_film_data import get_film_data
 from tools.data.get_store_data import get_store_data
 from tools.data.get_revenue_by_time import get_revenue_by_time
+from tools.data.get_rental_metrics_by_time import get_rental_metrics_by_time
 
 
 # ============================================================
@@ -138,6 +139,7 @@ TOOL_FUNCTIONS = {
     "generate_policy_recommendation": generate_policy_recommendation,
 
     "get_revenue_by_time": get_revenue_by_time,
+    "get_rental_metrics_by_time": get_rental_metrics_by_time,
 }
 
 
@@ -708,6 +710,63 @@ TOOL_DEFINITIONS = [
             ]
         }
     },
+
+    {
+        "name": "get_rental_metrics_by_time",
+        "description": (
+            "Calculate rental and late-return metrics over a selected "
+            "rental-date range. Use rental.rental_date as the time dimension "
+            "and completed rentals only. Returns rental count, late rentals, "
+            "on-time rentals, late-return rate, average rental duration, "
+            "average actual rental days, and average late days. "
+            "Can group by day, month, quarter, or year, with optional "
+            "category and store filters."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "start_date": {
+                    "type": "string",
+                    "description": (
+                        "Start date in YYYY-MM-DD format, inclusive."
+                    )
+                },
+                "end_date": {
+                    "type": "string",
+                    "description": (
+                        "End date in YYYY-MM-DD format, inclusive."
+                    )
+                },
+                "group_by": {
+                    "type": "string",
+                    "enum": [
+                        "day",
+                        "month",
+                        "quarter",
+                        "year"
+                    ],
+                    "default": "month",
+                    "description": (
+                        "How rental metrics should be grouped."
+                    )
+                },
+                "category": {
+                    "type": "string",
+                    "description": (
+                        "Optional exact category filter."
+                    )
+                },
+                "store_id": {
+                    "type": "integer",
+                    "description": (
+                        "Optional physical store ID filter."
+                    )
+                }
+            },
+            "required": []
+        }
+    },
+
 
     {
         "name": "get_revenue_by_time",

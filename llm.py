@@ -377,12 +377,12 @@ Use the actual aggregation result directly.
 AUTOMATIC TOOL SELECTION
 ============================================================
 
-TIME-BASED REVENUE RULE
+TIME-BASED BI METRICS RULE
 
 ============================================================
 
-When the user asks about revenue for a specific time period,
-or asks to compare revenue across time periods, MUST use:
+When the user asks about REVENUE for a specific time period,
+or asks to compare REVENUE across time periods, MUST use:
 
 get_revenue_by_time
 
@@ -440,10 +440,92 @@ For time-based revenue questions:
 - Do NOT use rental_rate as total revenue.
 - Do NOT manually sum raw rental records when get_revenue_by_time is available.
 - Do NOT use analyze_revenue_structure when the user explicitly asks
-  for a date/month/quarter/year comparison.
+  for a date/month/quarter/year revenue comparison.
 - Use the actual get_revenue_by_time result directly.
 - When the user asks for a full time breakdown, preserve all returned
   periods in the final table or visualization.
+
+============================================================
+
+TIME-BASED RENTAL / LATE-RETURN RULE
+
+============================================================
+
+When the user asks about RENTAL or LATE-RETURN metrics for a specific
+time period, or asks to compare those metrics across time periods,
+MUST use:
+
+get_rental_metrics_by_time
+
+This tool uses:
+
+- rental.rental_date as the time dimension
+- completed rentals only (return_date IS NOT NULL)
+
+The tool returns:
+
+- rental_count
+- late_rentals
+- on_time_rentals
+- late_rate_pct
+- avg_rental_duration
+- avg_actual_rental_days
+- avg_late_days
+
+Use the following mapping:
+
+"What is the late rate in May 2005?"
+
+→ get_rental_metrics_by_time
+  start_date = 2005-05-01
+  end_date = 2005-05-31
+  group_by = month
+
+"How many rentals were made in May?"
+
+→ get_rental_metrics_by_time
+  start_date = first day of the requested period
+  end_date = last day of the requested period
+  group_by = month
+
+"How many rentals were late in June?"
+
+→ get_rental_metrics_by_time
+  start_date = first day of June
+  end_date = last day of June
+  group_by = month
+
+"Compare late rate by month"
+
+→ get_rental_metrics_by_time
+  group_by = month
+
+"Compare rental volume by quarter"
+
+→ get_rental_metrics_by_time
+  group_by = quarter
+
+"What was the average rental duration in 2005?"
+
+→ get_rental_metrics_by_time
+  start_date = 2005-01-01
+  end_date = 2005-12-31
+  group_by = year
+
+"What was the average number of late days by month?"
+
+→ get_rental_metrics_by_time
+  group_by = month
+
+For time-based rental / late-return questions:
+
+- Do NOT use get_rental_data to manually group records when
+  get_rental_metrics_by_time is available.
+- Do NOT use get_revenue_by_time for late-rate, rental-count,
+  late-rental-count, rental-duration, or late-day questions.
+- Use the actual get_rental_metrics_by_time result directly.
+- Preserve all returned periods when the user asks for a full
+  time breakdown.
 
 ============================================================
 
@@ -463,7 +545,15 @@ Examples:
 
 "What percentage of rentals are late?"
 
-→ analyze_late_fee_revenue
+→ analyze_late_fee_dependency
+
+"What is the late rate in May?"
+
+→ get_rental_metrics_by_time
+
+"How many rentals were made in May?"
+
+→ get_rental_metrics_by_time
 
 "Predict late return probability."
 
@@ -490,6 +580,8 @@ Examples:
 → apply_policy_constraints
 
 Use multiple tools when the question requires them.
+
+============================================================
 
 ============================================================
 FACT / INTERPRETATION / RECOMMENDATION
