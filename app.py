@@ -2319,15 +2319,6 @@ def render_live_agent_activity(
 
             {''.join(rows)}
 
-            <div style="
-                margin:2px 12px 0 12px;
-                padding:6px 0 0 0;
-                border-top:1px solid #F1F5F9;
-                font:500 8px 'JetBrains Mono',monospace;
-                color:#94A3B8;
-            ">
-                {status_badge}
-            </div>
 
         </div>
         """
@@ -4274,7 +4265,7 @@ def render_ai_analyst(activity_placeholder=None):
         if event_name == "question_received":
             add_step(
                 "Understanding question",
-                "SUCCESS",
+                "RUNNING",
                 _activity_text(
                     event.get(
                         "question",
@@ -4285,6 +4276,9 @@ def render_ai_analyst(activity_placeholder=None):
             )
 
         elif event_name == "mode":
+            understanding = find_step("question")
+            if understanding is not None:
+                understanding["status"] = "SUCCESS"
             activity_state["mode"] = event.get(
                 "mode",
                 "",
@@ -4298,14 +4292,16 @@ def render_ai_analyst(activity_placeholder=None):
             )
 
         elif event_name == "agent_decision":
+            previous_next = find_step("next_step")
+            if previous_next is not None:
+                previous_next["status"] = "SUCCESS"
             tools = event.get(
                 "tools",
                 [],
             ) or []
-
             add_step(
                 "Selecting BI tool",
-                "SUCCESS",
+                "RUNNING",
                 "Selected: "
                 + (
                     ", ".join(
@@ -4318,6 +4314,9 @@ def render_ai_analyst(activity_placeholder=None):
             )
 
         elif event_name == "tool_selected":
+            decision = find_step("decision")
+            if decision is not None:
+                decision["status"] = "SUCCESS"
             tool_name = str(
                 event.get(
                     "tool",
@@ -4430,7 +4429,7 @@ def render_ai_analyst(activity_placeholder=None):
         elif event_name == "next_step":
             add_step(
                 "Selecting next step",
-                "SUCCESS",
+                "RUNNING",
                 (
                     f"Round {event.get('round', '?')} · "
                     f"{event.get('tool_count', 0)} "
@@ -4440,6 +4439,9 @@ def render_ai_analyst(activity_placeholder=None):
             )
 
         elif event_name == "synthesis_started":
+            previous_next = find_step("next_step")
+            if previous_next is not None:
+                previous_next["status"] = "SUCCESS"
             add_step(
                 "Synthesizing answer",
                 "RUNNING",
@@ -4486,13 +4488,6 @@ def render_ai_analyst(activity_placeholder=None):
             )
 
         elif event_name == "completed":
-            add_step(
-                "Completed",
-                "SUCCESS",
-                f"{event.get('tool_count', 0)} tool call(s)",
-                "completed",
-            )
-
             activity_state["status"] = "COMPLETED"
 
         elif event_name == "error":
@@ -4823,13 +4818,8 @@ def render_ai_analyst(activity_placeholder=None):
     # MAIN WORKSPACE
     # ========================================================
 
-    chat_col, activity_col = st.columns(
-        [1.8, 0.8],
-        gap="large",
-    )
-
-
-    # ========================================================
+    chat_col = st.container()
+# ========================================================
     # LEFT: CHAT
     # ========================================================
 
@@ -4912,50 +4902,6 @@ def render_ai_analyst(activity_placeholder=None):
 
 
     # ========================================================
-    # RIGHT: ACTUAL AGENT ACTIVITY
-    # ========================================================
-
-    with activity_col:
-
-        latest_trace = []
-
-        for message in reversed(
-            st.session_state.messages
-        ):
-
-            if (
-                message.get("role")
-                == "assistant"
-            ):
-
-                content = message.get(
-                    "content"
-                )
-
-                if isinstance(
-                    content,
-                    dict,
-                ):
-
-                    latest_trace = (
-                        content.get(
-                            "tool_trace",
-                            [],
-                        )
-                        or []
-                    )
-
-                break
-
-        render_agent_activity(
-            latest_trace,
-            st.session_state.get(
-                "agent_activity_events",
-                [],
-            ) or [],
-        )
-
-
 
 # ============================================================
 # ROUTING
