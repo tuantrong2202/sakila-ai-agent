@@ -1,4 +1,5 @@
 import html
+import json
 from datetime import datetime
 
 import altair as alt
@@ -2473,7 +2474,95 @@ def render_agent_activity(
 
 
 
+
+def _ui_normalize_structured_result(result):
+    """
+    UI-only safety net.
+
+    When the backend already returns a structured BI response,
+    keep it unchanged.
+
+    When the backend accidentally places the whole structured JSON
+    inside result["answer"], parse it here so the UI can still render
+    KPI cards, charts, tables and insights normally.
+    """
+    if not isinstance(result, dict):
+        return {
+            "answer": str(result),
+            "kpis": [],
+            "visualizations": [],
+            "tables": [],
+            "insights": [],
+        }
+
+    normalized = dict(result)
+
+    answer = normalized.get(
+        "answer",
+        "",
+    )
+
+    if not isinstance(answer, str):
+        return normalized
+
+    candidate = answer.strip()
+
+    # Remove accidental markdown fences if they exist.
+    if candidate.startswith("```"):
+        lines = candidate.splitlines()
+
+        if lines and lines[0].strip().startswith("```"):
+            lines = lines[1:]
+
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+
+        candidate = "\n".join(lines).strip()
+
+    if not (
+        candidate.startswith("{")
+        and candidate.endswith("}")
+    ):
+        return normalized
+
+    try:
+        parsed = json.loads(candidate)
+    except Exception:
+        return normalized
+
+    if not isinstance(parsed, dict):
+        return normalized
+
+    expected_fields = {
+        "answer",
+        "kpis",
+        "visualizations",
+        "tables",
+        "insights",
+    }
+
+    # Only treat it as a BI response when the expected structure
+    # is actually present.
+    if not (
+        len(
+            expected_fields.intersection(
+                parsed.keys()
+            )
+        )
+        >= 3
+    ):
+        return normalized
+
+    for field in expected_fields:
+        if field in parsed:
+            normalized[field] = parsed[field]
+
+    return normalized
+
+
 def render_agent_response(result):
+    result = _ui_normalize_structured_result(result)
+
     if not isinstance(result, dict):
         st.markdown(str(result))
         return
@@ -4064,6 +4153,8 @@ def render_assistant_message(
     result,
     timestamp,
 ):
+
+    result = _ui_normalize_structured_result(result)
 
     if not isinstance(
         result,
